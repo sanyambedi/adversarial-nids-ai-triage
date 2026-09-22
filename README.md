@@ -95,6 +95,8 @@ Whenever traffic is flagged as an attack, the triage layer (`triage.py`) analyze
 
 Supports Groq, Google Gemini, Anthropic, or OpenAI REST APIs via `.env`, with zero heavy SDK dependencies.
 
+> **Design Note (Cost & Latency Optimization)**: The LLM triage engine is invoked exclusively on connections flagged as `[ATTACK]`. Benign connections (`[NORMAL]`) are verified without dispatching an API call, preventing token waste, minimizing latency, and keeping pipeline throughput scalable.
+
 ---
 
 ## Project Structure
