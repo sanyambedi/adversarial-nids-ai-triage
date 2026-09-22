@@ -1,0 +1,25 @@
+# Python virtual environment
+venv/
+.venv/
+ENV/
+env/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & API credentials
+.env
+*.token
+*.key
+
+# Local datasets (auto-downloaded by train.py)
+data/
+
+# Model artifacts (optional to commit or ignore, but good to ignore temporary files)
+*.tmp
+
+# Mac/Windows system files
+.DS_Store
+Thumbs.db

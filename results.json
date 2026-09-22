@@ -1,0 +1,47 @@
+{
+  "num_features": 122,
+  "controllable_features": [
+    "duration",
+    "src_bytes",
+    "dst_bytes",
+    "count",
+    "srv_count"
+  ],
+  "sample_size_evasion": 300,
+  "baseline": {
+    "accuracy": 0.7656139105748758,
+    "precision": 0.9670832817720579,
+    "recall": 0.6089768565417284,
+    "f1": 0.7473462752223391,
+    "confusion_matrix": [
+      [
+        9445,
+        266
+      ],
+      [
+        5018,
+        7815
+      ]
+    ],
+    "evasion_rate": 0.41,
+    "evaded_count": 123
+  },
+  "hardened": {
+    "accuracy": 0.7995919091554294,
+    "precision": 0.9702522339101911,
+    "recall": 0.6684329463102938,
+    "f1": 0.7915474762388115,
+    "confusion_matrix": [
+      [
+        9448,
+        263
+      ],
+      [
+        4255,
+        8578
+      ]
+    ],
+    "evasion_rate": 0.043333333333333335,
+    "evaded_count": 13
+  }
+}
