@@ -37,17 +37,24 @@ def _call_llm_rest(prompt: str) -> str:
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
         }
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.1,
-            "max_tokens": 250,
-            "response_format": {"type": "json_object"}
-        }
-        resp = requests.post(url, headers=headers, json=payload, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        # Candidate models supported by Groq accounts
+        candidate_models = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+        last_err = None
+        for model_name in candidate_models:
+            payload = {
+                "model": model_name,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "max_tokens": 250
+            }
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=15)
+                if resp.status_code == 200:
+                    return resp.json()["choices"][0]["message"]["content"]
+                last_err = f"{resp.status_code}: {resp.text[:100]}"
+            except Exception as e:
+                last_err = str(e)
+        raise RuntimeError(f"Groq call failed across models: {last_err}")
 
     # 2. Google Gemini REST endpoint
     elif GEMINI_API_KEY:
