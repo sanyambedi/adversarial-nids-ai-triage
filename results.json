@@ -1,5 +1,6 @@
 {
   "num_features": 122,
+  "n_estimators": 200,
   "controllable_features": [
     "duration",
     "src_bytes",
@@ -9,39 +10,39 @@
   ],
   "sample_size_evasion": 300,
   "baseline": {
-    "accuracy": 0.7656139105748758,
-    "precision": 0.9670832817720579,
-    "recall": 0.6089768565417284,
-    "f1": 0.7473462752223391,
+    "accuracy": 0.7732434350603264,
+    "precision": 0.9718826405867971,
+    "recall": 0.6195448877805486,
+    "f1": 0.7567104511707595,
     "confusion_matrix": [
       [
-        9445,
-        266
+        4741,
+        115
       ],
       [
-        5018,
-        7815
+        2441,
+        3975
       ]
     ],
-    "evasion_rate": 0.41,
-    "evaded_count": 123
+    "evasion_rate": 0.5666666666666667,
+    "evaded_count": 170
   },
   "hardened": {
-    "accuracy": 0.7995919091554294,
-    "precision": 0.9702522339101911,
-    "recall": 0.6684329463102938,
-    "f1": 0.7915474762388115,
+    "accuracy": 0.8058907026259758,
+    "precision": 0.9742036787797218,
+    "recall": 0.6769014962593516,
+    "f1": 0.7987860952731286,
     "confusion_matrix": [
       [
-        9448,
-        263
+        4741,
+        115
       ],
       [
-        4255,
-        8578
+        2073,
+        4343
       ]
     ],
-    "evasion_rate": 0.043333333333333335,
-    "evaded_count": 13
+    "evasion_rate": 0.16,
+    "evaded_count": 48
   }
 }

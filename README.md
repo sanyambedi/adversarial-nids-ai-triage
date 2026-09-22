@@ -1,6 +1,6 @@
 # Adversarial-Robust Intrusion Detector with AI Triage
 
-An end-to-end Network Intrusion Detection System (NIDS) built on the NSL-KDD benchmark, stress-tested with a black-box adversarial evasion attack, hardened via adversarial retraining, and coupled with an LLM-assisted incident triage layer that explains flagged threats in plain English.
+An end-to-end Network Intrusion Detection System (NIDS) built on the NSL-KDD benchmark, stress-tested with a black-box adversarial evasion attack, hardened via adversarial retraining under a strict zero-leakage protocol, and coupled with an LLM-assisted incident triage layer that explains flagged threats in plain English.
 
 ---
 
@@ -9,74 +9,79 @@ Most student and tutorial intrusion detection systems stop at *"trained a classi
 1. **Adversarial Evasion**: Attackers actively modify controllable connection properties to sneak malicious traffic past static machine learning boundaries.
 2. **Alert Fatigue**: Security Operations Center (SOC) analysts are overwhelmed by raw binary alerts without contextual explanation or threat categorization.
 
-This project addresses both: we build an initial classifier, design an evasion attack against it, measure how easily it is fooled, harden it with adversarial retraining, and translate every detected alert into a structured, plain-English incident note.
+This project addresses both: we build an initial classifier, design an evasion attack against it, measure how easily it is fooled on completely unseen attacks, harden it with adversarial retraining, and translate every detected alert into a structured, plain-English incident note.
 
 ---
 
-## Architecture
+## Architecture & Zero-Leakage Evaluation Protocol
 
 ```text
 NSL-KDD Dataset (KDDTrain+, KDDTest+ / 41 Connection Features)
                          │
         preprocess.py (One-hot encoding, column schema alignment)
                          │
-        Baseline Random Forest Classifier (150 trees)
+        Baseline Random Forest Classifier (200 trees)
                          │
         ┌────────────────┴────────────────────────┐
+        │ Test Set Split (50% / 50%)              │
+        ▼                                         ▼
+Adversarial Crafting Split (X_atk)       Held-Out Test Set (X_holdout)
+(Used solely to generate evasion         (Strictly unseen; never touched
+ attacks to augment training)             during training or hardening)
         │                                         │
-Clean Test Evaluation                    Black-Box Evasion Attack
-(Baseline recall: 60.90%)               (Perturb 5 controllable features
-                                         toward normal distribution)
-                                                  │
-                                         41.00% of attacks evaded
-                                                  │
-                                         Adversarial Retraining
-                                         (Augment training set with
-                                         evasions, retrain model)
-                                                  │
-                                         Hardened Model Evaluation
-                                         (Evasion rate drops to 4.33%
-                                          Clean recall: 66.84%)
-                                                  │
-                                         Flagged Intrusions (Verdict == ATTACK)
-                                                  │
-                                         LLM Incident Triage Layer
-                                         (Attack Type, MITRE ATT&CK, Severity,
-                                          Concise Analyst Summary)
-                                                  │
-                                         Interactive Gradio Demo (app.py)
+153 Evasion Samples Generated                     │
+        │                                         │
+Adversarial Retraining                            │
+(Augment X_train with evasions)                   │
+        │                                         │
+Hardened Model (200 trees)                        │
+        │                                         │
+        └────────────────┬────────────────────────┘
+                         ▼
+        Zero-Leakage Evaluation on X_holdout
+        - Baseline Evasion Rate:  56.67% (170/300 evaded)
+        - Hardened Evasion Rate:  16.00% (48/300 evaded)
+        - Vulnerability Drop:     40.67% reduction
+        - Clean Test Recall:      67.69% preserved
+                         │
+        Flagged Intrusions (Verdict == ATTACK)
+                         │
+        LLM Incident Triage Layer
+        (Attack Type, MITRE ATT&CK, Severity, Concise Analyst Summary)
+                         │
+        Interactive Gradio Web Application (app.py)
 ```
 
 ---
 
-## Real Measured Experimental Results
+## Real Measured Experimental Results (Leak-Free Protocol)
 
-All numbers below were empirically measured on the official NSL-KDD test set (`KDDTest+.txt`):
+All numbers below were empirically measured on the held-out partition (`X_holdout`, 11,272 connections) of the official NSL-KDD test set (`KDDTest+.txt`):
 
 ### 1. Classification Performance
 
 | Metric | Baseline Classifier | Adversarially Hardened Model | Delta |
 |---|---|---|---|
-| **Clean Test Accuracy** | 76.56% | **79.96%** | `+3.40%` |
-| **Clean Test Precision** | 96.71% | **97.03%** | `+0.32%` |
-| **Attack Catch Rate (Recall)** | 60.90% | **66.84%** | `+5.94%` |
-| **Clean Test F1-Score** | 74.73% | **79.15%** | `+4.42%` |
+| **Clean Test Accuracy** | 77.32% | **80.59%** | `+3.26%` |
+| **Clean Test Precision** | 97.19% | **97.42%** | `+0.23%` |
+| **Attack Catch Rate (Recall)** | 61.95% | **67.69%** | `+5.74%` |
+| **Clean Test F1-Score** | 75.67% | **79.88%** | `+4.21%` |
 
-### 2. Adversarial Evasion Attack & Hardening
+### 2. Adversarial Evasion Attack & Hardening (Strictly Unseen Attacks)
 
 * **Threat Model**: Black-box greedy random search. The adversary observes only model output (`normal` vs `attack`) and does not know tree splits, weights, or hyperparameters.
 * **Attacker-Controllable Features (5)**: `["duration", "src_bytes", "dst_bytes", "count", "srv_count"]` (features an adversary can plausibly tune during connection establishment).
-* **Sample Size**: 300 correctly caught test attack connections.
+* **Sample Size**: 300 unseen test attacks sampled from the held-out partition (`X_holdout`).
 
 | Model Variant | Evasion Success Rate | Evaded Connections | Detection Retention |
 |---|---|---|---|
-| **Baseline Model** | **41.00%** | 123 / 300 | 59.00% |
-| **Hardened Model** | **4.33%** | 13 / 300 | **95.67%** |
+| **Baseline Model** | **56.67%** | 170 / 300 | 43.33% |
+| **Hardened Model** | **16.00%** | 48 / 300 | **84.00%** |
 
 ### Key Takeaways
-1. **High Baseline Fragility**: Simply perturbing 5 connection features allowed **41.00%** of previously detected attacks to slip past the baseline detector as "normal" traffic.
-2. **Substantial Hardening**: Adding successful evasion examples back into the training distribution reduced the evasion success rate from **41.00% down to 4.33%** (an absolute vulnerability reduction of **36.67%**).
-3. **No Trade-Off Degradation**: Hardening did not degrade performance on normal traffic; in fact, clean test recall improved from **60.90% to 66.84%** due to improved boundary generalization.
+1. **Severe Baseline Fragility**: Simply perturbing 5 connection features allowed **56.67%** of unseen baseline-detected attacks to slip past the detector as "normal" traffic.
+2. **Generalizable Hardening**: Adding successful evasion examples from the attack split back into the training distribution reduced the evasion success rate on *completely unseen* attacks from **56.67% down to 16.00%** (an absolute vulnerability reduction of **40.67%**).
+3. **Leakage-Free Validation**: Because `X_holdout` was strictly sequestered from the adversarial crafting split (`X_atk`), the observed robustness gains prove real generalization against adversarial manipulation rather than memorization of perturbed test rows.
 
 ---
 
@@ -98,7 +103,7 @@ Supports Groq, Google Gemini, Anthropic, or OpenAI REST APIs via `.env`, with ze
 ids-adversarial-triage/
 ├── data/                       # Local cache for KDDTrain+.txt & KDDTest+.txt (git-ignored)
 ├── preprocess.py               # Canonical schema & encoding (single source of truth)
-├── train.py                    # Training, black-box evasion, and hardening pipeline
+├── train.py                    # Zero-leakage training, evasion, and hardening pipeline
 ├── triage.py                   # LLM incident triage engine (direct REST via requests)
 ├── app.py                      # Interactive Gradio web application
 ├── sample_test.csv             # Curated sample network traffic for instant testing
@@ -119,8 +124,8 @@ ids-adversarial-triage/
 
 ### 1. Setup Environment
 ```bash
-git clone <your-repo-url>
-cd ids-adversarial-triage
+git clone https://github.com/sanyambedi/adversarial-nids-ai-triage.git
+cd adversarial-nids-ai-triage
 python -m venv venv
 # Activate on Windows:
 venv\Scripts\activate
@@ -138,7 +143,7 @@ cp .env.example .env
 Supported keys: `GROQ_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, or `OPENAI_API_KEY`. (If no key is configured, an automated heuristic analyst note is generated for offline local testing).
 
 ### 3. Run Pipeline or Launch Web App
-To re-run the entire training, evasion testing, and hardening pipeline:
+To re-run the entire leak-free training, evasion testing, and hardening pipeline:
 ```bash
 python train.py
 ```
@@ -147,7 +152,7 @@ To launch the interactive Gradio dashboard:
 ```bash
 python app.py
 ```
-Open `http://127.0.0.1:7860` in your web browser. You can click **Test Sample Data (sample_test.csv)** for an instant demo or upload any NSL-KDD formatted CSV.
+Open `http://127.0.0.1:7860` in your web browser. Click **Test Sample Data (sample_test.csv)** for an instant demo or upload any NSL-KDD formatted CSV.
 
 ---
 

@@ -1,28 +1,29 @@
-# Experimental Results: Adversarial Robustness and Intrusion Detection
+# Experimental Results: Leak-Free Adversarial Robustness and Intrusion Detection
 
-Measured numbers from the NSL-KDD benchmark training and adversarial evaluation.
+Empirical benchmark evaluation conducted under a strict zero-leakage protocol (50% attack-crafting split / 50% held-out evaluation split). Both models evaluated with Random Forest (n_estimators=200).
 
-## 1. Baseline Performance vs. Hardened Performance
+## 1. Baseline Performance vs. Hardened Performance (Held-Out Test Traffic)
 
 | Metric | Baseline Random Forest | Adversarially Hardened Model | Delta |
 |---|---|---|---|
-| **Clean Test Accuracy** | 76.56% | 79.96% | +3.40% |
-| **Clean Test Precision** | 96.71% | 97.03% | +0.32% |
-| **Clean Test Recall (Attack Catch Rate)** | 60.90% | 66.84% | +5.95% |
-| **Clean Test F1-Score** | 74.73% | 79.15% | +4.42% |
+| **Clean Test Accuracy** | 77.32% | 80.59% | +3.26% |
+| **Clean Test Precision** | 97.19% | 97.42% | +0.23% |
+| **Clean Test Recall (Attack Catch Rate)** | 61.95% | 67.69% | +5.74% |
+| **Clean Test F1-Score** | 75.67% | 79.88% | +4.21% |
 
-## 2. Adversarial Evasion Test Results
+## 2. Adversarial Evasion Test Results (Strictly Unseen Attacks)
 
 - **Threat Model**: Black-box greedy random search targeting normal empirical distributions.
 - **Attacker-Controllable Features (5)**: `duration, src_bytes, dst_bytes, count, srv_count`
-- **Evaluated Attack Connections**: 300 previously caught test attacks.
+- **Evaluated Attack Connections**: 300 unseen attack connections from the held-out split (`X_holdout`).
+- **Leakage Prevention**: Zero samples or perturbations evaluated here were seen during training or adversarial retraining.
 
 | Model Variant | Evasion Success Rate | Evaded Connections | Detection Retention |
 |---|---|---|---|
-| **Baseline Model** | **41.00%** | 123 / 300 | 59.00% |
-| **Hardened Model (Post-Adversarial Training)** | **4.33%** | 13 / 300 | 95.67% |
+| **Baseline Model** | **56.67%** | 170 / 300 | 43.33% |
+| **Hardened Model (Post-Adversarial Training)** | **16.00%** | 48 / 300 | 84.00% |
 
 ### Key Observations
-1. **Adversarial Vulnerability**: The baseline model was susceptible to evasion: **41.00%** of caught attacks were disguised as normal traffic simply by perturbing connection duration, bytes transferred, and connection counters.
-2. **Hardening Recovery**: Adversarial training reduced evasion vulnerability from **41.00%** down to **4.33%** (an absolute reduction of **36.67%**).
-3. **Preservation of Clean Recall**: Clean test set recall was preserved (66.84% vs 60.90%), proving that hardening against adversarial evasions did not cause a catastrophic collapse in general attack detection.
+1. **Adversarial Vulnerability on Unseen Attacks**: The baseline model allowed **56.67%** of unseen attacks in the holdout split to slip past as normal traffic via black-box feature manipulation.
+2. **Generalizable Hardening**: Even on completely held-out, unseen attack connections, adversarial training reduced the evasion rate from **56.67%** to **16.00%** (an absolute vulnerability reduction of **40.67%**).
+3. **Honest Robustness / Accuracy Balance**: Evaluated strictly on held-out clean data, clean recall is 67.69% (vs 61.95% baseline) and accuracy is 80.59% (vs 77.32%), confirming robust decision boundaries without artificial test leakage.
